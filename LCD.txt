@@ -1,0 +1,113 @@
+#include <msp430.h> 
+
+
+//=========================Dinh nghia cac Port IO==============//
+#define LCD_OUT     P2OUT
+#define RS      BIT2  // =0 : LCD ghi lenh
+                      // =1 : LCD ghi du lieu (xuat len mang hinh)
+
+#define E       BIT3 // =0: not read and write
+                     // =1: read and write
+                    // 1 -> 0 : start read and write
+
+#define D4      BIT4
+#define D5      BIT5
+#define D6      BIT6
+#define D7      BIT7
+
+
+//==============================================================//
+//**************************************************************//
+//                  Code giao tiep 4bit                         //
+//**************************************************************//
+
+//--------------------------Tao xung----------------------------//
+void Xung_LCD()
+{
+    LCD_OUT |= E;
+    __delay_cycles(33000);
+    LCD_OUT &= ~E;
+    __delay_cycles(33000);
+}
+//-----------------Ghi 1 byte lenh cho LCD---------------------//
+void Ghi_lenh_LCD(char Lenh)
+{
+    LCD_OUT = (Lenh & 0xF0);   // ghi 4 bit cao
+
+    LCD_OUT &= ~ RS;
+    Xung_LCD();
+    LCD_OUT &= ~0xFF;
+
+    LCD_OUT |= ((Lenh & 0x0F)<<4); // dich trai 4bit de ghi 4bit thap
+
+    LCD_OUT &= ~RS;
+    Xung_LCD();
+}
+
+//---------------------Ghi 1 bit data cho LCD------------------//
+void Ghi_data_LCD(char Data)
+{
+    LCD_OUT = (Data & 0xF0); // ghi 4 bit cao
+
+    LCD_OUT |= RS;
+    Xung_LCD();
+    LCD_OUT &= ~0xFF;
+
+    LCD_OUT |= ((Data & 0x0F)<<4); // dich trai 4bit de ghi 4 bit thap
+    LCD_OUT |= RS;
+    Xung_LCD();
+}
+//--------------Vi tri xuat hien ky tu tren LCD-------------------//
+void Vi_tri(char Hang, char Cot)
+{
+    char diachi;
+    diachi=0x40*(Hang-1)+Cot;
+    Ghi_lenh_LCD(0x80 + diachi);
+}
+//---------------Lam sach (delete hien thi tren LCD)---------------//
+void Xoa_LCD()
+{
+    Ghi_lenh_LCD(0x01);//xoa hien thi
+    Ghi_lenh_LCD(0x02);//dua con tro ve dau dong
+}
+//------------------------Ham khoi tao---------------------------//
+void Khoi_tao_LCD(void)
+{
+    Xung_LCD(); //thuc thi
+    Ghi_lenh_LCD(0x28);//thiet lap giao tuc voi LCD dung 4 bit, lcd 2 dong do phan giai 5x8
+    Ghi_lenh_LCD(0x06);//ky tu in sau se dung sau ky tu in truoc
+    Ghi_lenh_LCD(0x0C);//bat hien thi con tro
+}
+//------------------------In chuoi ki tu len LCD---------------------//
+void In_chuoi(char *kytu)
+{
+    while(*kytu)
+    {
+        Ghi_data_LCD(*kytu);
+        kytu++;
+    }
+}
+//-------------------------chuong trinh chinh------------------------//
+void main (void)
+{
+    WDTCTL= WDTPW + WDTHOLD;
+    P2SEL &= ~ (E+RS+D4+D5+D6+D7);
+    P2SEL2 &= ~ (E+RS+D4+D5+D6+D7);
+    BCSCTL1= CALBC1_1MHZ;
+    DCOCTL=CALDCO_1MHZ;
+
+    P2DIR = 0xFF;
+    Khoi_tao_LCD();
+    Xoa_LCD();
+    while(1)
+    {
+        Vi_tri(1,1);
+        In_chuoi("First project");
+        __delay_cycles(1000000);
+        Vi_tri(2,4);
+        In_chuoi("is ok");
+        Xoa_LCD();
+
+    }
+
+}
