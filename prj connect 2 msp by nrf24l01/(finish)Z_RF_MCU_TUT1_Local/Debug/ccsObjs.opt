@@ -1,0 +1,1 @@
+"./nrf24l01.obj" "./main.obj" "./UART.obj" "./SPI.obj" -l"libc.a" "../lnk_msp430g2553.cmd" 
